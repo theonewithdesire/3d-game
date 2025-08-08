@@ -40,10 +40,15 @@ class ChickenHunter3D {
         this.walkSpeed = 200;
         this.runSpeed = 400;
 
-        // Mouse controls
+        // Mouse/touch controls
         this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
         this.PI_2 = Math.PI / 2;
         this.mouseSensitivity = 0.002;
+        this.isMobile = window.matchMedia('(pointer: coarse)').matches || /Mobi|Android/i.test(navigator.userAgent);
+        this.touchLookActive = false;
+        this.touchLastX = 0;
+        this.touchLastY = 0;
+        this.joystick = { active: false, dx: 0, dy: 0 };
 
         // Chicken AI
         this.chickenAttackTimer = 0;
@@ -55,8 +60,9 @@ class ChickenHunter3D {
     init() {
         // Setup renderer
         this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.isMobile ? 1.5 : 2));
         this.renderer.setClearColor(0x87CEEB); // Sky blue
-        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.enabled = !this.isMobile; // performance
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.getElementById('gameContainer').appendChild(this.renderer.domElement);
 
@@ -72,6 +78,9 @@ class ChickenHunter3D {
 
         // Setup controls
         this.setupControls();
+        if (this.isMobile) {
+            this.setupMobileControls();
+        }
 
         // Start game loop
         this.animate();
@@ -87,6 +96,8 @@ class ChickenHunter3D {
         document.getElementById('ammoCounter').style.display = 'none';
         document.getElementById('instructions').style.display = 'none';
         document.getElementById('quickMenu').style.display = 'none';
+        const reloadText = document.getElementById('reloadText');
+        if (this.isMobile && reloadText) reloadText.textContent = 'Tap 🔄 to reload';
     }
 
     startGame() {
@@ -98,14 +109,30 @@ class ChickenHunter3D {
         document.getElementById('menuBar').style.display = 'flex';
         document.getElementById('crosshair').style.display = 'block';
         document.getElementById('ammoCounter').style.display = 'block';
-        document.getElementById('instructions').style.display = 'block';
+        const instructions = document.getElementById('instructions');
+        if (this.isMobile) {
+            instructions.innerHTML = '<strong>🎮 CONTROLS</strong><br>Left joystick: Move | Right screen: Look<br>Tap 🔫: Shoot | Tap 🔄: Reload | Tap ⏸️: Menu';
+        }
+        instructions.style.display = 'block';
         document.getElementById('quickMenu').style.display = 'flex';
+
+        // Mobile in-game UI
+        const lookArea = document.getElementById('lookArea');
+        const mobileControls = document.getElementById('mobileControls');
+        const mobileButtons = document.getElementById('mobileButtons');
+        if (this.isMobile) {
+            lookArea.style.display = 'block';
+            mobileControls.style.display = 'block';
+            mobileButtons.style.display = 'flex';
+        }
 
         // Create chickens
         this.createChickens();
 
-        // Request pointer lock
-        document.body.requestPointerLock();
+        // Request pointer lock (desktop only)
+        if (!this.isMobile) {
+            document.body.requestPointerLock();
+        }
 
         this.updateUI();
     }
@@ -128,6 +155,14 @@ class ChickenHunter3D {
         this.isReloading = false;
         this.isPaused = false;
 
+        // Hide mobile controls
+        const lookArea = document.getElementById('lookArea');
+        const mobileControls = document.getElementById('mobileControls');
+        const mobileButtons = document.getElementById('mobileButtons');
+        if (lookArea) lookArea.style.display = 'none';
+        if (mobileControls) mobileControls.style.display = 'none';
+        if (mobileButtons) mobileButtons.style.display = 'none';
+
         // Show startup menu
         this.showStartupMenu();
         document.getElementById('gameOverScreen').style.display = 'none';
@@ -140,13 +175,11 @@ class ChickenHunter3D {
 Hunt down all the chickens in the vast countryside!
 
 🕹️ CONTROLS:
-• WASD - Move around
-• Shift - Run faster
-• Mouse - Look around
-• Click - Shoot
-• R - Reload weapon
-• ESC - Pause/Menu
-• Tab - Quick access menu
+• ${this.isMobile ? 'Left joystick - Move' : 'WASD - Move around'}
+• ${this.isMobile ? 'Right screen - Look' : 'Shift - Run faster'}
+• ${this.isMobile ? 'Tap 🔫 - Shoot' : 'Mouse - Look around / Click - Shoot'}
+• ${this.isMobile ? 'Tap 🔄 - Reload' : 'R - Reload weapon'}
+• ${this.isMobile ? 'Tap ⏸️ - Pause/Menu' : 'ESC - Pause/Menu'}
 
 ⚠️ BEWARE:
 • Some chickens are aggressive and will attack you!
@@ -162,7 +195,7 @@ Good luck, hunter! 🐔🔫`);
     }
 
     showSettings() {
-        const sensitivity = prompt('🎛️ GAME SETTINGS\n\nMouse Sensitivity (0.001 - 0.01):', this.mouseSensitivity);
+        const sensitivity = prompt('🎛️ GAME SETTINGS\n\nMouse/Look Sensitivity (0.001 - 0.01):', this.mouseSensitivity);
         if (sensitivity && !isNaN(sensitivity)) {
             this.mouseSensitivity = Math.max(0.001, Math.min(0.01, parseFloat(sensitivity)));
         }
@@ -221,9 +254,9 @@ Good luck, hunter! 🐔🔫`);
         // Sunlight
         const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
         sunLight.position.set(200, 150, -300);
-        sunLight.castShadow = true;
-        sunLight.shadow.mapSize.width = 4096;
-        sunLight.shadow.mapSize.height = 4096;
+        sunLight.castShadow = !this.isMobile;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
         sunLight.shadow.camera.near = 0.5;
         sunLight.shadow.camera.far = 1000;
         sunLight.shadow.camera.left = -200;
@@ -244,7 +277,8 @@ Good luck, hunter! 🐔🔫`);
             opacity: 0.8
         });
 
-        for (let i = 0; i < 20; i++) {
+        const cloudCount = this.isMobile ? 12 : 20;
+        for (let i = 0; i < cloudCount; i++) {
             const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
             cloud.position.set(
                 (Math.random() - 0.5) * 800,
@@ -262,7 +296,7 @@ Good luck, hunter! 🐔🔫`);
 
     createTerrain() {
         // Main ground - much bigger
-        const groundGeometry = new THREE.PlaneGeometry(this.worldSize * 2, this.worldSize * 2, 100, 100);
+        const groundGeometry = new THREE.PlaneGeometry(this.worldSize * 2, this.worldSize * 2, 80, 80);
         const groundMaterial = new THREE.MeshLambertMaterial({
             color: 0x4a7c59,
             transparent: true
@@ -289,7 +323,8 @@ Good luck, hunter! 🐔🔫`);
     }
 
     createHills() {
-        for (let i = 0; i < 15; i++) {
+        const hills = this.isMobile ? 10 : 15;
+        for (let i = 0; i < hills; i++) {
             const hillGeometry = new THREE.SphereGeometry(20 + Math.random() * 30, 16, 12);
             const hillMaterial = new THREE.MeshLambertMaterial({ color: 0x3a6b47 });
             const hill = new THREE.Mesh(hillGeometry, hillMaterial);
@@ -314,7 +349,8 @@ Good luck, hunter! 🐔🔫`);
             opacity: 0.8
         });
 
-        for (let i = 0; i < 300; i++) {
+        const count = this.isMobile ? 180 : 300;
+        for (let i = 0; i < count; i++) {
             const grass = new THREE.Mesh(grassGeometry, grassMaterial);
             grass.position.set(
                 (Math.random() - 0.5) * this.worldSize * 1.8,
@@ -329,7 +365,7 @@ Good luck, hunter! 🐔🔫`);
 
     createTrees() {
         // Generate many more trees across the bigger world
-        const numTrees = 80;
+        const numTrees = this.isMobile ? 50 : 80;
         for (let i = 0; i < numTrees; i++) {
             const x = (Math.random() - 0.5) * this.worldSize * 1.6;
             const z = (Math.random() - 0.5) * this.worldSize * 1.6;
@@ -369,7 +405,7 @@ Good luck, hunter! 🐔🔫`);
 
     createHouses() {
         // Generate more houses spread across the bigger world
-        const numHouses = 25;
+        const numHouses = this.isMobile ? 16 : 25;
         for (let i = 0; i < numHouses; i++) {
             const angle = (i / numHouses) * Math.PI * 2;
             const distance = 80 + Math.random() * (this.worldSize * 0.6);
@@ -435,7 +471,8 @@ Good luck, hunter! 🐔🔫`);
 
     createEnvironmentDetails() {
         // Add rocks across the bigger world
-        for (let i = 0; i < 100; i++) {
+        const rockCount = this.isMobile ? 70 : 100;
+        for (let i = 0; i < rockCount; i++) {
             const rockGeometry = new THREE.SphereGeometry(0.8 + Math.random() * 2, 8, 6);
             const rockMaterial = new THREE.MeshLambertMaterial({ color: 0x696969 });
             const rock = new THREE.Mesh(rockGeometry, rockMaterial);
@@ -450,7 +487,8 @@ Good luck, hunter! 🐔🔫`);
         }
 
         // Add flowers across the bigger world
-        for (let i = 0; i < 200; i++) {
+        const flowerCount = this.isMobile ? 130 : 200;
+        for (let i = 0; i < flowerCount; i++) {
             const flowerGeometry = new THREE.SphereGeometry(0.4, 8, 6);
             const flowerColors = [0xff69b4, 0xff1493, 0xffd700, 0xff4500, 0x9370db];
             const flowerMaterial = new THREE.MeshBasicMaterial({
@@ -466,7 +504,8 @@ Good luck, hunter! 🐔🔫`);
         }
 
         // Add bushes
-        for (let i = 0; i < 60; i++) {
+        const bushCount = this.isMobile ? 40 : 60;
+        for (let i = 0; i < bushCount; i++) {
             const bushGeometry = new THREE.SphereGeometry(2 + Math.random() * 2, 8, 6);
             const bushMaterial = new THREE.MeshLambertMaterial({ color: 0x2d5a3d });
             const bush = new THREE.Mesh(bushGeometry, bushMaterial);
@@ -587,11 +626,11 @@ Good luck, hunter! 🐔🔫`);
     }
 
     setupControls() {
-        // Pointer lock
+        // Pointer lock & click to shoot
         document.addEventListener('click', (event) => {
             if (this.gameOver) return;
 
-            if (!this.isPointerLocked) {
+            if (!this.isPointerLocked && !this.isMobile) {
                 document.body.requestPointerLock();
             } else if (!this.isPaused) {
                 this.shoot();
@@ -602,8 +641,9 @@ Good luck, hunter! 🐔🔫`);
             this.isPointerLocked = document.pointerLockElement === document.body;
         });
 
-        // Mouse movement
+        // Mouse movement (desktop)
         document.addEventListener('mousemove', (event) => {
+            if (this.isMobile) return;
             if (!this.isPointerLocked || this.isPaused) return;
 
             const movementX = event.movementX || 0;
@@ -687,6 +727,80 @@ Good luck, hunter! 🐔🔫`);
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         });
+    }
+
+    setupMobileControls() {
+        const lookArea = document.getElementById('lookArea');
+        const stickBase = document.getElementById('moveStickBase');
+        const stick = document.getElementById('moveStick');
+        const shootBtn = document.getElementById('shootBtn');
+        const reloadBtn = document.getElementById('reloadBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+
+        // Look control on right half
+        const onLookStart = (e) => {
+            this.touchLookActive = true;
+            const t = e.touches ? e.touches[0] : e;
+            this.touchLastX = t.clientX;
+            this.touchLastY = t.clientY;
+        };
+        const onLookMove = (e) => {
+            if (!this.touchLookActive || this.isPaused) return;
+            const t = e.touches ? e.touches[0] : e;
+            const dx = t.clientX - this.touchLastX;
+            const dy = t.clientY - this.touchLastY;
+            this.touchLastX = t.clientX;
+            this.touchLastY = t.clientY;
+
+            this.euler.setFromQuaternion(this.camera.quaternion);
+            this.euler.y -= dx * this.mouseSensitivity * 0.7;
+            this.euler.x -= dy * this.mouseSensitivity * 0.7;
+            this.euler.x = Math.max(-this.PI_2, Math.min(this.PI_2, this.euler.x));
+            this.camera.quaternion.setFromEuler(this.euler);
+        };
+        const onLookEnd = () => { this.touchLookActive = false; };
+        ['touchstart','mousedown'].forEach(ev => lookArea.addEventListener(ev, onLookStart, { passive: true }));
+        ['touchmove','mousemove'].forEach(ev => lookArea.addEventListener(ev, onLookMove, { passive: true }));
+        ['touchend','mouseup','mouseleave','touchcancel'].forEach(ev => lookArea.addEventListener(ev, onLookEnd));
+
+        // Movement joystick (fixed base)
+        const radius = 50; // must match CSS ~ 56px stick
+        const moveStart = (e) => {
+            e.preventDefault();
+            this.joystick.active = true;
+        };
+        const moveMove = (e) => {
+            if (!this.joystick.active) return;
+            const t = e.touches ? e.touches[0] : e;
+            const r = stickBase.getBoundingClientRect();
+            const cx = r.left + r.width / 2;
+            const cy = r.top + r.height / 2;
+            const dx = t.clientX - cx;
+            const dy = t.clientY - cy;
+            const dist = Math.hypot(dx, dy);
+            const angle = Math.atan2(dy, dx);
+            const clamped = Math.min(dist, radius);
+            const innerX = Math.cos(angle) * clamped;
+            const innerY = Math.sin(angle) * clamped;
+            stick.style.transform = `translate(calc(-50% + ${innerX}px), calc(-50% + ${innerY}px))`;
+            this.joystick.dx = innerX / radius;
+            this.joystick.dy = innerY / radius;
+        };
+        const moveEnd = () => {
+            this.joystick.active = false;
+            this.joystick.dx = 0;
+            this.joystick.dy = 0;
+            stick.style.transform = 'translate(-50%, -50%)';
+        };
+        stickBase.addEventListener('touchstart', moveStart, { passive: false });
+        stickBase.addEventListener('touchmove', moveMove, { passive: false });
+        stickBase.addEventListener('touchend', moveEnd);
+        stickBase.addEventListener('touchcancel', moveEnd);
+
+        // Buttons
+        shootBtn.addEventListener('touchstart', (e) => { e.preventDefault(); this.shoot(); }, { passive: false });
+        reloadBtn.addEventListener('touchstart', (e) => { e.preventDefault(); this.reload(); }, { passive: false });
+        pauseBtn.addEventListener('touchstart', (e) => { e.preventDefault(); this.togglePause(); }, { passive: false });
     }
 
     shoot() {
@@ -884,21 +998,41 @@ Good luck, hunter! 🐔🔫`);
         this.velocity.x -= this.velocity.x * 10.0 * delta;
         this.velocity.z -= this.velocity.z * 10.0 * delta;
 
-        this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
-        this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
-        this.direction.normalize();
+        if (this.isMobile) {
+            // Joystick -> WASD mapping
+            const dead = 0.08;
+            const dx = Math.abs(this.joystick.dx) > dead ? this.joystick.dx : 0;
+            const dy = Math.abs(this.joystick.dy) > dead ? this.joystick.dy : 0;
+            const mag = Math.min(1, Math.hypot(dx, dy));
 
-        const currentSpeed = this.isRunning ? this.runSpeed : this.walkSpeed;
+            // Move relative to camera orientation
+            const forward = new THREE.Vector3();
+            this.camera.getWorldDirection(forward);
+            forward.y = 0; forward.normalize();
+            const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0), forward).negate();
 
-        if (this.moveForward || this.moveBackward) this.velocity.z -= this.direction.z * currentSpeed * delta;
-        if (this.moveLeft || this.moveRight) this.velocity.x -= this.direction.x * currentSpeed * delta;
+            const desired = new THREE.Vector3();
+            desired.addScaledVector(forward, mag * (dy));
+            desired.addScaledVector(right, mag * (dx));
+            if (desired.lengthSq() > 0.0001) desired.normalize();
+
+            this.direction.copy(desired);
+        } else {
+            this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
+            this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
+            this.direction.normalize();
+        }
+
+        const currentSpeed = this.isRunning && !this.isMobile ? this.runSpeed : this.walkSpeed;
+
+        if (this.direction.z !== 0) this.velocity.z -= this.direction.z * currentSpeed * delta;
+        if (this.direction.x !== 0) this.velocity.x -= this.direction.x * currentSpeed * delta;
 
         this.camera.translateX(this.velocity.x * delta);
         this.camera.translateZ(this.velocity.z * delta);
 
         // Keep camera above ground with slight head bobbing
-        const bobAmount = (this.moveForward || this.moveBackward || this.moveLeft || this.moveRight) ?
-            Math.sin(Date.now() * 0.01) * 0.1 : 0;
+        const bobAmount = (this.direction.lengthSq() > 0.0001) ? Math.sin(Date.now() * 0.01) * 0.1 : 0;
         this.camera.position.y = Math.max(this.camera.position.y, 3 + bobAmount);
 
         // Boundary checking - much bigger world
