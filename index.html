@@ -7,480 +7,160 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
         
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
         
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             font-family: 'Rajdhani', sans-serif;
-            touch-action: none; /* Prevent scrolling/zoom gestures over game */
+            touch-action: none;
             -webkit-tap-highlight-color: transparent;
+            color: #e2e8f0;
         }
         
         #gameContainer {
             position: relative;
             width: 100vw;
-            height: 100dvh; /* Better mobile viewport */
+            height: 100dvh;
         }
         
         /* Startup Menu */
         #startupMenu {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            position: absolute; inset: 0;
+            background: radial-gradient(1000px 600px at 20% 10%, rgba(56,189,248,0.15), transparent 50%),
+                        radial-gradient(800px 500px at 80% 90%, rgba(99,102,241,0.18), transparent 55%),
+                        linear-gradient(135deg, #0f172a, #1e293b 60%, #111827);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 400;
-            animation: fadeIn 1s ease-in;
+            animation: fadeIn 0.6s ease-out;
+            padding: 24px;
         }
         
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
         .menu-title {
             font-family: 'Orbitron', monospace;
-            font-size: 4rem;
-            font-weight: 900;
-            color: #fff;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-            margin-bottom: 1rem;
-            animation: glow 2s ease-in-out infinite alternate;
-        }
-        
-        @keyframes glow {
-            from { text-shadow: 0 0 20px rgba(255, 255, 255, 0.5); }
-            to { text-shadow: 0 0 30px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.6); }
+            font-size: clamp(1.8rem, 6vw, 3.2rem);
+            font-weight: 900; letter-spacing: 2px;
+            color: #f8fafc;
+            text-shadow: 0 8px 30px rgba(59,130,246,0.35);
+            margin: 0 0 8px 0;
         }
         
         .menu-subtitle {
-            font-size: 1.5rem;
-            color: #b8c6db;
-            margin-bottom: 3rem;
-            text-align: center;
-            max-width: 600px;
-            line-height: 1.6;
+            font-size: clamp(0.9rem, 2.8vw, 1.15rem);
+            color: #94a3b8;
+            margin: 0 0 28px 0;
+            text-align: center; max-width: 680px; line-height: 1.55;
         }
         
-        .menu-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            align-items: center;
+        .menu-buttons { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+        
+        .btn {
+            padding: 14px 36px; border: 0; border-radius: 14px; cursor: pointer;
+            font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+            transition: transform .12s ease, box-shadow .2s ease, background .2s ease, color .2s ease;
+            font-size: clamp(0.9rem, 2.8vw, 1rem);
         }
         
-        .start-btn {
-            padding: 15px 40px;
-            font-size: 1.3rem;
-            font-weight: 600;
-            font-family: 'Rajdhani', sans-serif;
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            color: white;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .btn-primary {
+            background: linear-gradient(135deg, #22d3ee, #22c55e);
+            color: #041016;
+            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.25);
         }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 18px 42px rgba(34, 197, 94, 0.35); }
+        .btn-primary:active { transform: translateY(0); }
         
-        .start-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 35px rgba(255, 107, 107, 0.4);
-            background: linear-gradient(45deg, #ff5252, #d63031);
+        .btn-ghost {
+            background: rgba(148, 163, 184, 0.08);
+            color: #e2e8f0;
+            border: 1px solid rgba(148, 163, 184, 0.25);
         }
+        .btn-ghost:hover { background: rgba(148, 163, 184, 0.14); }
         
-        .start-btn:active {
-            transform: translateY(-1px);
-        }
-        
-        .secondary-btn {
-            padding: 12px 30px;
-            font-size: 1.1rem;
-            font-weight: 500;
-            font-family: 'Rajdhani', sans-serif;
-            background: transparent;
-            color: #b8c6db;
-            border: 2px solid #b8c6db;
-            border-radius: 30px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .secondary-btn:hover {
-            background: #b8c6db;
-            color: #1e3c72;
-            transform: translateY(-2px);
-        }
-        
-        /* Enhanced Menu Bar */
+        /* Top Menu Bar */
         #menuBar {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 80px;
-            background: linear-gradient(135deg, rgba(30, 60, 114, 0.95), rgba(42, 82, 152, 0.95));
+            position: absolute; left: 0; right: 0; top: 0; height: 72px;
+            background: rgba(2, 6, 23, 0.55);
             backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 30px;
-            z-index: 200;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+            display: none; align-items: center; justify-content: space-between;
+            padding: 0 20px; z-index: 200;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
         }
         
-        #gameStats {
-            display: flex;
-            gap: 40px;
-            color: white;
-            font-size: 16px;
-            font-weight: 500;
-        }
+        #gameStats { display: flex; gap: 16px; color: #e2e8f0; font-size: clamp(12px, 2.5vw, 14px); font-weight: 600; }
         
         .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.3s ease;
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 14px;
+            background: rgba(148, 163, 184, 0.10);
+            border-radius: 16px; backdrop-filter: blur(6px);
+            border: 1px solid rgba(148, 163, 184, 0.18);
         }
+        .stat-value { font-weight: 800; color: #facc15; }
+        #lifeBar { display: flex; gap: 6px; }
+        .heart { width: 18px; height: 18px; background: linear-gradient(45deg, #ef4444, #b91c1c); clip-path: polygon(50% 15%, 85% 0%, 100% 35%, 50% 100%, 0% 35%, 15% 0%); }
+        .heart.lost { background: linear-gradient(45deg, #334155, #0f172a); }
         
-        .stat-item:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-2px);
-        }
+        #menuButtons { display: flex; gap: 10px; }
+        .menu-btn { padding: 8px 14px; background: linear-gradient(135deg, #60a5fa, #3b82f6); color: #0b1220; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 12px; }
+        .menu-btn:hover { filter: brightness(1.05); }
         
-        .stat-value {
-            font-weight: 700;
-            color: #ffd700;
-        }
-        
-        #lifeBar {
-            display: flex;
-            gap: 6px;
-        }
-        
-        .heart {
-            width: 22px;
-            height: 22px;
-            background: linear-gradient(45deg, #e74c3c, #c0392b);
-            clip-path: polygon(50% 15%, 85% 0%, 100% 35%, 50% 100%, 0% 35%, 15% 0%);
-            transition: all 0.3s ease;
-            filter: drop-shadow(0 2px 4px rgba(231, 76, 60, 0.3));
-        }
-        
-        .heart.lost {
-            background: linear-gradient(45deg, #34495e, #2c3e50);
-            filter: drop-shadow(0 2px 4px rgba(52, 73, 94, 0.3));
-        }
-        
-        #menuButtons {
-            display: flex;
-            gap: 15px;
-        }
-        
-        .menu-btn {
-            padding: 10px 20px;
-            background: linear-gradient(45deg, #3498db, #2980b9);
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: 600;
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .menu-btn:hover {
-            background: linear-gradient(45deg, #2980b9, #1f4e79);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
-        }
-        
-        .menu-btn:active {
-            transform: translateY(0);
-        }
-        
-        /* Game UI Elements */
-        #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-            z-index: 100;
-            pointer-events: none;
-            display: none;
-        }
-        
-        #crosshair::before,
-        #crosshair::after {
-            content: '';
-            position: absolute;
-            background: linear-gradient(45deg, #e74c3c, #c0392b);
-            box-shadow: 0 0 10px rgba(231, 76, 60, 0.6);
-            border-radius: 2px;
-        }
-        
-        #crosshair::before {
-            width: 4px;
-            height: 40px;
-            left: 18px;
-            top: 0;
-        }
-        
-        #crosshair::after {
-            width: 40px;
-            height: 4px;
-            left: 0;
-            top: 18px;
-        }
+        /* Game UI */
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 36px; height: 36px; z-index: 100; pointer-events: none; display: none; }
+        #crosshair::before, #crosshair::after { content: ''; position: absolute; background: linear-gradient(45deg, #f59e0b, #ef4444); box-shadow: 0 0 8px rgba(239,68,68,0.6); border-radius: 2px; }
+        #crosshair::before { width: 3px; height: 36px; left: 16px; top: 0; }
+        #crosshair::after { width: 36px; height: 3px; left: 0; top: 16px; }
         
         #instructions {
-            position: absolute;
-            bottom: 30px;
-            left: 30px;
-            color: #2c3e50;
-            z-index: 100;
-            font-size: 14px;
-            font-weight: 500;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 15px 20px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-            display: none;
+            position: absolute; bottom: 18px; left: 18px; color: #0f172a; z-index: 100;
+            font-size: clamp(11px, 2.5vw, 13px); font-weight: 600;
+            background: rgba(248, 250, 252, 0.92); padding: 12px 14px; border-radius: 14px;
+            backdrop-filter: blur(10px); border: 1px solid rgba(148, 163, 184, 0.25);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15); display: none;
         }
         
         #ammoCounter {
-            position: absolute;
-            bottom: 30px;
-            right: 30px;
-            color: #2c3e50;
-            z-index: 100;
-            font-size: 18px;
-            font-weight: 700;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            border-radius: 20px;
-            text-align: center;
-            min-width: 120px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-            display: none;
+            position: absolute; bottom: 18px; right: 18px; color: #0f172a; z-index: 100;
+            font-size: clamp(14px, 3vw, 16px); font-weight: 800; background: rgba(248, 250, 252, 0.95);
+            padding: 14px 16px; border-radius: 16px; text-align: center; min-width: 110px;
+            backdrop-filter: blur(10px); border: 1px solid rgba(148, 163, 184, 0.25);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15); display: none;
         }
         
-        #gameOverScreen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(10px);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 300;
-        }
+        #gameOverScreen { position: absolute; inset: 0; background: rgba(2,6,23,0.82); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 300; }
+        #gameOverContent { background: linear-gradient(135deg, #0b1220, #0b1220); padding: 32px; border-radius: 20px; text-align: center; max-width: 520px; width: calc(100% - 40px); box-shadow: 0 20px 60px rgba(0,0,0,0.35); border: 1px solid rgba(148,163,184,0.18); color: #e2e8f0; }
+        #gameOverContent h2 { font-family: 'Orbitron', monospace; font-size: clamp(1.4rem, 5vw, 2rem); margin: 0 0 10px 0; font-weight: 800; }
         
-        #gameOverContent {
-            background: linear-gradient(135deg, #fff, #f8f9fa);
-            padding: 50px;
-            border-radius: 25px;
-            text-align: center;
-            max-width: 500px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        #gameOverContent h2 {
-            font-family: 'Orbitron', monospace;
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            font-weight: 700;
-        }
-        
-        #reloadIndicator {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #e74c3c;
-            font-size: 28px;
-            font-weight: 700;
-            font-family: 'Orbitron', monospace;
-            z-index: 150;
-            display: none;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 25px 35px;
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-            border: 2px solid #e74c3c;
-            box-shadow: 0 10px 30px rgba(231, 76, 60, 0.3);
-            animation: pulse 1s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.05); }
-        }
+        #reloadIndicator { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #eab308; font-size: clamp(20px, 5vw, 26px); font-weight: 800; font-family: 'Orbitron', monospace; z-index: 150; display: none; background: rgba(255, 255, 255, 0.95); padding: 18px 26px; border-radius: 16px; backdrop-filter: blur(10px); border: 2px solid #f59e0b; box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3); }
         
         /* Quick Access Menu */
-        #quickMenu {
-            position: absolute;
-            top: 50%;
-            right: 20px;
-            transform: translateY(-50%);
-            display: none;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 180;
-        }
-        
-        .quick-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: none;
-            background: rgba(255, 255, 255, 0.9);
-            color: #2c3e50;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .quick-btn:hover {
-            background: rgba(255, 255, 255, 1);
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-        }
+        #quickMenu { position: absolute; top: 50%; right: 14px; transform: translateY(-50%); display: none; flex-direction: column; gap: 8px; z-index: 180; }
+        .quick-btn { width: 42px; height: 42px; border-radius: 10px; border: 1px solid rgba(148,163,184,0.25); background: rgba(148,163,184,0.10); color: #e2e8f0; font-size: 12px; font-weight: 800; cursor: pointer; backdrop-filter: blur(10px); box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
+        .quick-btn:hover { background: rgba(148,163,184,0.18); }
         
         /* MOBILE CONTROLS */
-        #lookArea {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 50vw;
-            height: 100%;
-            z-index: 120;
-            display: none; /* enabled on mobile */
-        }
+        #lookArea { position: absolute; top: 0; right: 0; width: 55vw; height: 100%; z-index: 120; display: none; }
+        #mobileControls { position: absolute; left: 14px; bottom: 14px; z-index: 160; display: none; }
+        #moveStickBase { width: 90px; height: 90px; border-radius: 50%; background: rgba(148,163,184,0.14); border: 1px solid rgba(148,163,184,0.25); backdrop-filter: blur(8px); position: relative; touch-action: none; }
+        #moveStick { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border-radius: 50%; background: rgba(248,250,252,0.9); box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
         
-        #mobileControls {
-            position: absolute;
-            left: 20px;
-            bottom: 24px;
-            z-index: 160;
-            display: none; /* enabled on mobile */
-        }
-        
-        #moveStickBase {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.15);
-            border: 2px solid rgba(255, 255, 255, 0.35);
-            backdrop-filter: blur(8px);
-            position: relative;
-            touch-action: none;
-        }
-        
-        #moveStick {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.85);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-        }
-        
-        #mobileButtons {
-            position: absolute;
-            right: 20px;
-            bottom: 20px;
-            display: none; /* enabled on mobile */
-            z-index: 160;
-            display: none;
-            gap: 12px;
-        }
-        
-        .mobile-btn {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            border: none;
-            background: linear-gradient(45deg, #ffffff, #f2f2f2);
-            color: #2c3e50;
-            font-size: 24px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(8px);
-        }
-        
+        #mobileButtons { position: absolute; right: 14px; bottom: 14px; display: none; z-index: 160; gap: 10px; }
+        .mobile-btn { width: 52px; height: 52px; border-radius: 12px; border: 1px solid rgba(148,163,184,0.25); background: rgba(148,163,184,0.10); color: #e2e8f0; font-size: 12px; font-weight: 800; box-shadow: 0 10px 25px rgba(0,0,0,0.25); backdrop-filter: blur(8px); }
         .mobile-btn:active { transform: scale(0.98); }
         
-        /* Responsive Design */
+        /* Responsive */
         @media (max-width: 768px) {
-            .menu-title { font-size: 2.5rem; }
-            
-            #gameStats {
-                gap: 20px;
-                font-size: 14px;
-            }
-            
-            .stat-item { padding: 6px 12px; }
-            
-            #menuButtons { gap: 10px; }
-            
-            .menu-btn {
-                padding: 8px 16px;
-                font-size: 12px;
-            }
-            
-            #crosshair { width: 28px; height: 28px; }
-            #crosshair::before { height: 28px; left: 12px; }
-            #crosshair::after { width: 28px; top: 12px; }
+            #menuBar { height: 62px; padding: 0 12px; }
+            .menu-subtitle { margin-bottom: 20px; }
         }
-        
-        /* Prefer mobile controls when using coarse pointers */
         @media (pointer: coarse) and (hover: none) {
-            #lookArea,
-            #mobileControls,
-            #mobileButtons { display: none; } /* default hidden; toggled by JS during gameplay */
-            #menuBar { height: 68px; padding: 0 16px; }
-            #instructions { font-size: 13px; left: 16px; bottom: 16px; }
-            #ammoCounter { right: 16px; bottom: 16px; padding: 14px; min-width: 100px; }
+            #menuBar { height: 62px; padding: 0 12px; }
+            #instructions { left: 12px; bottom: 12px; }
+            #ammoCounter { right: 12px; bottom: 12px; padding: 12px 14px; min-width: 96px; }
         }
     </style>
 </head>
@@ -490,100 +170,78 @@
         <div id="startupMenu">
             <h1 class="menu-title">CHICKEN HUNTER 3D</h1>
             <p class="menu-subtitle">
-                Welcome to the ultimate chicken hunting experience!<br>
-                Navigate through a vast countryside, hunt down aggressive chickens,<br>
-                and survive in this intense 3D adventure.
+                Hunt through a vast countryside. Track, aim, and survive.
             </p>
             <div class="menu-buttons">
-                <button class="start-btn" onclick="game.startGame()">🎯 START HUNTING</button>
-                <button class="secondary-btn" onclick="game.showInstructions()">📖 How to Play</button>
-                <button class="secondary-btn" onclick="game.showSettings()">⚙️ Settings</button>
+                <button class="btn btn-primary" onclick="game.startGame()">Start</button>
+                <button class="btn btn-ghost" onclick="game.showInstructions()">How to Play</button>
+                <button class="btn btn-ghost" onclick="game.showSettings()">Settings</button>
             </div>
         </div>
         
-        <!-- Enhanced Menu Bar -->
+        <!-- Top Menu Bar -->
         <div id="menuBar">
             <div id="gameStats">
-                <div class="stat-item">
-                    <span>🎯</span>
-                    <span>Score: <span class="stat-value" id="score">0</span></span>
-                </div>
-                <div class="stat-item">
-                    <span>🐔</span>
-                    <span>Targets: <span class="stat-value" id="chickensLeft">20</span></span>
-                </div>
-                <div class="stat-item">
-                    <span>❤️</span>
-                    <div id="lifeBar">
-                        <div class="heart"></div>
-                        <div class="heart"></div>
-                        <div class="heart"></div>
-                    </div>
-                </div>
-                <div class="stat-item">
-                    <span>⏱️</span>
-                    <span>Time: <span class="stat-value" id="timer">0:00</span></span>
-                </div>
+                <div class="stat-item">Score: <span class="stat-value" id="score">0</span></div>
+                <div class="stat-item">Targets: <span class="stat-value" id="chickensLeft">20</span></div>
+                <div class="stat-item"><div id="lifeBar"><div class="heart"></div><div class="heart"></div><div class="heart"></div></div></div>
+                <div class="stat-item">Time: <span class="stat-value" id="timer">0:00</span></div>
             </div>
             
             <div id="menuButtons">
-                <button class="menu-btn" onclick="game.togglePause()">⏸️ Pause</button>
-                <button class="menu-btn" onclick="game.restart()">🔄 Restart</button>
-                <button class="menu-btn" onclick="game.showMainMenu()">🏠 Menu</button>
+                <button class="menu-btn" onclick="game.togglePause()">Pause</button>
+                <button class="menu-btn" onclick="game.restart()">Restart</button>
+                <button class="menu-btn" onclick="game.showMainMenu()">Menu</button>
             </div>
         </div>
         
         <!-- Quick Access Menu -->
         <div id="quickMenu">
-            <button class="quick-btn" onclick="game.togglePause()" title="Pause/Resume">⏸️</button>
-            <button class="quick-btn" onclick="game.reload()" title="Reload">🔄</button>
-            <button class="quick-btn" onclick="game.toggleMap()" title="Mini Map">🗺️</button>
+            <button class="quick-btn" onclick="game.togglePause()" title="Pause/Resume">II</button>
+            <button class="quick-btn" onclick="game.reload()" title="Reload">R</button>
+            <button class="quick-btn" onclick="game.toggleMap()" title="Mini Map">M</button>
         </div>
         
         <!-- Game Elements -->
         <div id="crosshair"></div>
         
         <div id="ammoCounter">
-            <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">🔫 WEAPON</div>
-            <div id="ammoCount" style="font-size: 24px; color: #e74c3c;">30/30</div>
-            <div id="reloadText" style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">Press R to reload</div>
+            <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">WEAPON</div>
+            <div id="ammoCount" style="font-size: 22px; color: #ef4444;">30/30</div>
+            <div id="reloadText" style="font-size: 11px; color: #64748b; margin-top: 4px;">Press R to reload</div>
         </div>
         
         <div id="instructions">
-            <strong>🎮 CONTROLS</strong><br>
-            WASD: Move | Shift: Run | Mouse: Look Around<br>
-            Click: Shoot | R: Reload | ESC: Menu | Tab: Quick Access
+            <strong>CONTROLS</strong><br>
+            WASD: Move | Shift: Run | Mouse: Look<br>
+            Click: Shoot | R: Reload | ESC: Menu | Tab: Quick
         </div>
         
-        <div id="reloadIndicator">
-            RELOADING...
-        </div>
+        <div id="reloadIndicator">RELOADING...</div>
         
         <!-- MOBILE LOOK AREA + CONTROLS -->
         <div id="lookArea" aria-hidden="true"></div>
         <div id="mobileControls">
-            <div id="moveStickBase">
-                <div id="moveStick"></div>
-            </div>
+            <div id="moveStickBase"><div id="moveStick"></div></div>
         </div>
         <div id="mobileButtons">
-            <button id="shootBtn" class="mobile-btn" title="Shoot">🔫</button>
-            <button id="reloadBtn" class="mobile-btn" title="Reload">🔄</button>
-            <button id="pauseBtn" class="mobile-btn" title="Pause/Resume">⏸️</button>
+            <button id="shootBtn" class="mobile-btn" title="Shoot">F</button>
+            <button id="reloadBtn" class="mobile-btn" title="Reload">R</button>
+            <button id="pauseBtn" class="mobile-btn" title="Pause/Resume">II</button>
         </div>
         
-        <!-- Enhanced Game Over Screen -->
+        <!-- Game Over Screen -->
         <div id="gameOverScreen">
             <div id="gameOverContent">
-                <h2 id="gameOverTitle">Game Over!</h2>
-                <p id="gameOverMessage">You ran out of lives!</p>
-                <div style="margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 10px;">
-                    <p><strong>Final Score:</strong> <span id="finalScore" style="color: #e74c3c; font-size: 1.5em;">0</span></p>
-                    <p><strong>Time Survived:</strong> <span id="finalTime" style="color: #3498db; font-size: 1.2em;">0:00</span></p>
+                <h2 id="gameOverTitle">Game Over</h2>
+                <p id="gameOverMessage">You ran out of lives.</p>
+                <div style="margin: 16px 0; padding: 16px; background: rgba(148,163,184,0.08); border-radius: 12px;">
+                    <p><strong>Final Score:</strong> <span id="finalScore" style="color: #ef4444; font-size: 1.25em;">0</span></p>
+                    <p><strong>Time Survived:</strong> <span id="finalTime" style="color: #60a5fa; font-size: 1.05em;">0:00</span></p>
                 </div>
-                <div style="display: flex; gap: 15px; justify-content: center;">
-                    <button class="start-btn" onclick="game.restart()">🔄 Play Again</button>
-                    <button class="secondary-btn" onclick="game.showMainMenu()">🏠 Main Menu</button>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button class="btn btn-primary" onclick="game.restart()">Play Again</button>
+                    <button class="btn btn-ghost" onclick="game.showMainMenu()">Main Menu</button>
                 </div>
             </div>
         </div>

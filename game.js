@@ -43,12 +43,13 @@ class ChickenHunter3D {
         // Mouse/touch controls
         this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
         this.PI_2 = Math.PI / 2;
-        this.mouseSensitivity = 0.002;
+        this.mouseSensitivity = 0.0025; // slight bump for touch
         this.isMobile = window.matchMedia('(pointer: coarse)').matches || /Mobi|Android/i.test(navigator.userAgent);
         this.touchLookActive = false;
         this.touchLastX = 0;
         this.touchLastY = 0;
-        this.joystick = { active: false, dx: 0, dy: 0 };
+        this.joystick = { active: false, dx: 0, dy: 0, radius: 38 };
+        this.lookTapSuppressUntil = 0;
 
         // Chicken AI
         this.chickenAttackTimer = 0;
@@ -61,7 +62,7 @@ class ChickenHunter3D {
         // Setup renderer
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.isMobile ? 1.5 : 2));
-        this.renderer.setClearColor(0x87CEEB); // Sky blue
+        this.renderer.setClearColor(0x0b1220);
         this.renderer.shadowMap.enabled = !this.isMobile; // performance
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.getElementById('gameContainer').appendChild(this.renderer.domElement);
@@ -69,7 +70,7 @@ class ChickenHunter3D {
         // Setup camera
         this.camera.position.set(0, 8, 15);
 
-        // Create day scene
+        // Create day scene and world
         this.createDayScene();
         this.createTerrain();
         this.createHouses();
@@ -97,7 +98,7 @@ class ChickenHunter3D {
         document.getElementById('instructions').style.display = 'none';
         document.getElementById('quickMenu').style.display = 'none';
         const reloadText = document.getElementById('reloadText');
-        if (this.isMobile && reloadText) reloadText.textContent = 'Tap 🔄 to reload';
+        if (this.isMobile && reloadText) reloadText.textContent = 'Tap R to reload';
     }
 
     startGame() {
@@ -111,7 +112,7 @@ class ChickenHunter3D {
         document.getElementById('ammoCounter').style.display = 'block';
         const instructions = document.getElementById('instructions');
         if (this.isMobile) {
-            instructions.innerHTML = '<strong>🎮 CONTROLS</strong><br>Left joystick: Move | Right screen: Look<br>Tap 🔫: Shoot | Tap 🔄: Reload | Tap ⏸️: Menu';
+            instructions.innerHTML = '<strong>CONTROLS</strong><br>Left joystick: Move | Right area: Look<br>Tap F: Shoot | Tap R: Reload | Tap II: Menu';
         }
         instructions.style.display = 'block';
         document.getElementById('quickMenu').style.display = 'flex';
@@ -124,6 +125,7 @@ class ChickenHunter3D {
             lookArea.style.display = 'block';
             mobileControls.style.display = 'block';
             mobileButtons.style.display = 'flex';
+            this.lookTapSuppressUntil = performance.now() + 300; // avoid accidental fire
         }
 
         // Create chickens
@@ -626,11 +628,12 @@ Good luck, hunter! 🐔🔫`);
     }
 
     setupControls() {
-        // Pointer lock & click to shoot
+        // Pointer lock & click to shoot (desktop only)
         document.addEventListener('click', (event) => {
             if (this.gameOver) return;
+            if (this.isMobile) return; // disable click shooting on mobile surface
 
-            if (!this.isPointerLocked && !this.isMobile) {
+            if (!this.isPointerLocked) {
                 document.body.requestPointerLock();
             } else if (!this.isPaused) {
                 this.shoot();
@@ -747,6 +750,8 @@ Good luck, hunter! 🐔🔫`);
         const onLookMove = (e) => {
             if (!this.touchLookActive || this.isPaused) return;
             const t = e.touches ? e.touches[0] : e;
+            const now = performance.now();
+            if (now < this.lookTapSuppressUntil) return; // avoid early accidental move
             const dx = t.clientX - this.touchLastX;
             const dy = t.clientY - this.touchLastY;
             this.touchLastX = t.clientX;
@@ -764,7 +769,7 @@ Good luck, hunter! 🐔🔫`);
         ['touchend','mouseup','mouseleave','touchcancel'].forEach(ev => lookArea.addEventListener(ev, onLookEnd));
 
         // Movement joystick (fixed base)
-        const radius = 50; // must match CSS ~ 56px stick
+        const radius = this.joystick.radius; // px
         const moveStart = (e) => {
             e.preventDefault();
             this.joystick.active = true;
@@ -805,48 +810,37 @@ Good luck, hunter! 🐔🔫`);
 
     shoot() {
         const currentTime = Date.now();
-
-        // Check cooldown and ammo
-        if (currentTime - this.lastShotTime < this.shotCooldown || this.ammo <= 0 || this.isReloading) {
-            return;
-        }
-
+        if (currentTime - this.lastShotTime < this.shotCooldown || this.ammo <= 0 || this.isReloading) return;
         this.lastShotTime = currentTime;
         this.ammo--;
 
-        // Create raycaster from camera
+        // Raycast
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
 
-        // Check for chicken intersections
         const aliveChickens = this.chickens.filter(chicken => chicken.userData.alive);
         const intersects = raycaster.intersectObjects(aliveChickens, true);
 
         let hit = false;
+        let hitPoint = null;
         if (intersects.length > 0) {
-            // Find the chicken that was hit
             let hitChicken = intersects[0].object;
             while (hitChicken.parent && !hitChicken.userData.alive) {
                 hitChicken = hitChicken.parent;
             }
-
             if (hitChicken.userData && hitChicken.userData.alive) {
                 this.killChicken(hitChicken);
                 hit = true;
+                hitPoint = intersects[0].point.clone();
             }
         }
 
-        // Create muzzle flash and bullet trail
         this.createMuzzleFlash();
-        this.createBulletTrail(hit);
+        this.createBulletTrail(hit, hitPoint);
         this.playShootSound();
-
         this.updateUI();
 
-        // Auto-reload if empty
-        if (this.ammo === 0) {
-            setTimeout(() => this.reload(), 500);
-        }
+        if (this.ammo === 0) setTimeout(() => this.reload(), 500);
     }
 
     reload() {
@@ -914,58 +908,62 @@ Good luck, hunter! 🐔🔫`);
     }
 
     createMuzzleFlash() {
-        const flashGeometry = new THREE.SphereGeometry(0.8, 8, 6);
-        const flashMaterial = new THREE.MeshBasicMaterial({
-            color: 0xffff00,
-            transparent: true,
-            opacity: 0.9
-        });
+        const flashGeometry = new THREE.SphereGeometry(0.45, 12, 10);
+        const flashMaterial = new THREE.MeshBasicMaterial({ color: 0xfff1a1, transparent: true, opacity: 0.95 });
         const flash = new THREE.Mesh(flashGeometry, flashMaterial);
 
-        // Position flash in front of camera
         const direction = new THREE.Vector3();
         this.camera.getWorldDirection(direction);
-        flash.position.copy(this.camera.position).add(direction.multiplyScalar(3));
-
+        flash.position.copy(this.camera.position).add(direction.multiplyScalar(2.2));
         this.scene.add(flash);
 
-        // Animate flash
-        let opacity = 0.9;
-        const flashAnimation = () => {
-            opacity -= 0.1;
-            flash.material.opacity = opacity;
-            flash.scale.multiplyScalar(1.2);
+        // Light bloom effect
+        const light = new THREE.PointLight(0xffd27d, 1.2, 8);
+        light.position.copy(flash.position);
+        this.scene.add(light);
 
-            if (opacity > 0) {
+        let opacity = 0.95;
+        const flashAnimation = () => {
+            opacity -= 0.18;
+            flash.material.opacity = Math.max(0, opacity);
+            flash.scale.multiplyScalar(1.22);
+            light.intensity *= 0.7;
+            if (opacity > 0.02) {
                 requestAnimationFrame(flashAnimation);
             } else {
                 this.scene.remove(flash);
+                this.scene.remove(light);
             }
         };
         flashAnimation();
     }
 
-    createBulletTrail(hit) {
+    createBulletTrail(hit, hitPoint) {
         const direction = new THREE.Vector3();
         this.camera.getWorldDirection(direction);
 
         const startPos = this.camera.position.clone();
-        const endPos = startPos.clone().add(direction.multiplyScalar(100));
+        const endPos = hit && hitPoint ? hitPoint.clone() : startPos.clone().add(direction.multiplyScalar(120));
 
-        const trailGeometry = new THREE.BufferGeometry().setFromPoints([startPos, endPos]);
-        const trailMaterial = new THREE.LineBasicMaterial({
-            color: hit ? 0xff0000 : 0xffff00,
-            transparent: true,
-            opacity: 0.8
-        });
-        const trail = new THREE.Line(trailGeometry, trailMaterial);
+        // Glowing beam using line + additive material
+        const beamGeometry = new THREE.BufferGeometry().setFromPoints([startPos, endPos]);
+        const beamMaterial = new THREE.LineBasicMaterial({ color: hit ? 0xff5555 : 0xffdd55, transparent: true, opacity: 0.95 });
+        const beam = new THREE.Line(beamGeometry, beamMaterial);
+        this.scene.add(beam);
 
-        this.scene.add(trail);
+        // Fade quickly
+        setTimeout(() => { this.scene.remove(beam); }, 80);
 
-        // Remove trail after short time
-        setTimeout(() => {
-            this.scene.remove(trail);
-        }, 150);
+        // Impact sparkle
+        if (hit && hitPoint) {
+            const sparkle = new THREE.Points(
+                new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0,0,0], 3)),
+                new THREE.PointsMaterial({ color: 0xffaa88, size: 0.2, transparent: true, opacity: 0.9 })
+            );
+            sparkle.position.copy(hitPoint);
+            this.scene.add(sparkle);
+            setTimeout(() => { this.scene.remove(sparkle); }, 120);
+        }
     }
 
     playShootSound() {
@@ -999,23 +997,19 @@ Good luck, hunter! 🐔🔫`);
         this.velocity.z -= this.velocity.z * 10.0 * delta;
 
         if (this.isMobile) {
-            // Joystick -> WASD mapping
-            const dead = 0.08;
+            const dead = 0.1;
             const dx = Math.abs(this.joystick.dx) > dead ? this.joystick.dx : 0;
             const dy = Math.abs(this.joystick.dy) > dead ? this.joystick.dy : 0;
             const mag = Math.min(1, Math.hypot(dx, dy));
 
-            // Move relative to camera orientation
             const forward = new THREE.Vector3();
-            this.camera.getWorldDirection(forward);
-            forward.y = 0; forward.normalize();
+            this.camera.getWorldDirection(forward); forward.y = 0; forward.normalize();
             const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0), forward).negate();
 
             const desired = new THREE.Vector3();
-            desired.addScaledVector(forward, mag * (dy));
-            desired.addScaledVector(right, mag * (dx));
+            desired.addScaledVector(forward, mag * dy);
+            desired.addScaledVector(right, mag * dx);
             if (desired.lengthSq() > 0.0001) desired.normalize();
-
             this.direction.copy(desired);
         } else {
             this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
@@ -1024,18 +1018,15 @@ Good luck, hunter! 🐔🔫`);
         }
 
         const currentSpeed = this.isRunning && !this.isMobile ? this.runSpeed : this.walkSpeed;
-
         if (this.direction.z !== 0) this.velocity.z -= this.direction.z * currentSpeed * delta;
         if (this.direction.x !== 0) this.velocity.x -= this.direction.x * currentSpeed * delta;
 
         this.camera.translateX(this.velocity.x * delta);
         this.camera.translateZ(this.velocity.z * delta);
 
-        // Keep camera above ground with slight head bobbing
         const bobAmount = (this.direction.lengthSq() > 0.0001) ? Math.sin(Date.now() * 0.01) * 0.1 : 0;
         this.camera.position.y = Math.max(this.camera.position.y, 3 + bobAmount);
 
-        // Boundary checking - much bigger world
         const maxDistance = this.worldSize * 0.9;
         this.camera.position.x = Math.max(-maxDistance, Math.min(maxDistance, this.camera.position.x));
         this.camera.position.z = Math.max(-maxDistance, Math.min(maxDistance, this.camera.position.z));
